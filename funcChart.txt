@@ -1,0 +1,213 @@
+<div id="chargeRateChart" style="width: 560px; height:300px;"></div>
+<div id="voltageChart" style="width: 560px; height:300px;"></div>
+
+var chargeRateChart = echarts.init(document.getElementById('chargeRateChart'), 'light');
+	function setLoadRateChart(legend, name, series) {
+		var loadRateCharOption = {
+			tooltip: {
+				trigger: 'axis'
+			},
+			legend: {
+				data: legend,
+				textStyle: { color: '#25B1BE' }
+			},
+			xAxis: {
+				type: 'time',
+				splitLine: {
+					show: false
+				},
+				axisLabel: {
+					textStyle: {
+						color: '#25B1BE'
+					}
+				},
+				axisLine:{
+					lineStyle:{
+						color:'#25B1BE'
+					}
+				}
+			},
+			yAxis: [{
+				name: name,
+				type: 'value',
+				axisLabel: {
+					textStyle: {
+						color: '#25B1BE'
+					}
+				},
+				axisLine:{
+					lineStyle:{
+						color:'#25B1BE'
+					}
+				}
+			}, {
+				name: '负荷率(%)',
+				type: 'value',
+				axisLabel: {
+					textStyle: {
+						color: '#25B1BE'
+					}
+				},
+				axisLine:{
+					lineStyle:{
+						color:'#25B1BE'
+					}
+				}
+			}],
+			series: series
+		}
+		chargeRateChart.setOption(loadRateCharOption);
+	}
+	//数据曲线——电压曲线
+	var voltageChart = echarts.init(document.getElementById('voltageChart'), 'black');
+	function setVoltageChart(legend, name, series) {
+		var voltageChartOption = {
+			tooltip: {
+				trigger: 'axis'
+			},
+			legend: {
+				data: legend,
+				textStyle: { color: '#25B1BE' }
+			},
+			xAxis: {
+				type: 'time',
+				splitLine: {
+					show: false
+				},
+				axisLabel: {
+					textStyle: {
+						color: '#25B1BE'
+					}
+				},
+				axisLine:{
+					lineStyle:{
+						color:'#25B1BE'
+					}
+				}
+			},
+			yAxis: {
+				type: 'value',
+				name: name,
+				splitLine: {
+					show: false
+				},
+				axisLine:{
+					lineStyle:{
+						color:'#25B1BE'
+					}
+				}
+			},
+			series: series
+		};
+		voltageChart.setOption(voltageChartOption);
+	}
+	function checkData(day, objectCode, site) {
+		$.ajax({
+			url: "",
+			type: "POST",
+			data: {
+				day: day,
+				objectCode: objectCode,
+				site: site
+			},
+			dataType: "json",
+			success: function(data) {
+
+				var data = {
+					loadRate:[{timestamp:1551238200000, value:10}, {timestamp:1551238500000, value:20}],
+					aType:[{timestamp:1551238200000, value:10}, {timestamp:1551238500000, value:20}],
+					bType:[{timestamp:1551238200000, value:10}, {timestamp:1551238500000, value:20}],
+					cType:[{timestamp:1551238200000, value:10}, {timestamp:1551238500000, value:20}],
+					currentLegends:['A相电流','A相电流','B相电流'],
+					currentUom:{name:'安培', symbol:'A'},
+					voltageLegends: ['A相电压','A相电压','B相电压'],
+					voltageUom: {name:'千伏', symbol:'kV'},
+					voltages: [{timestamp:1551238200000, value:35}, {timestamp:1551238500000, value:24}]
+				};
+
+				var currentLegends = data.currentLegends;
+				currentLegends.push("负荷率");
+				var cName = "电流" + "(" + data.currentUom.symbol + ")" ;
+				var newData1 = [];
+				var newData2 = [];
+				var newData3 = [];
+				var newData4 = [];
+				var newData5 = [];
+				if(data.aType != null && data.aType.length > 0) {
+					for(var i = 0; i < data.aType.length; i++) {
+						var aType = [];
+						aType.push(data.aType[i].timestamp);
+						aType.push(data.aType[i].value);
+						newData1.push(aType);
+					}
+				}
+				if(data.bType != null && data.bType.length > 0) {
+					for(var i = 0; i < data.bType.length; i++) {
+						var bType = [];
+						bType.push(data.bType[i].timestamp);
+						bType.push(data.bType[i].value);
+						newData2.push(bType);
+					}
+				}
+				if(data.cType != null && data.cType.length > 0) {
+					for(var i = 0; i < data.cType.length; i++) {
+						var cType = [];
+						cType.push(data.cType[i].timestamp);
+						cType.push(data.cType[i].value);
+						newData3.push(cType);
+					}
+				}
+				if(data.loadRate != null && data.loadRate.length > 0) {
+					for(var i = 0; i < data.cType.length; i++) {
+						var loadRate = [];
+						loadRate.push(data.loadRate[i].timestamp);
+						loadRate.push( Math.round(data.loadRate[i].value*100*100)/100 );		//负荷率取百分比且保留两位小数
+						newData4.push(loadRate);
+					}
+				}
+
+				newData5.push(newData1, newData2, newData3, newData4);
+				
+				var currentSeries = [];
+				for(var i = 0; i < data.voltages.length+1; i++) {
+					var objSerie = {};
+					objSerie.type = 'line';
+					objSerie.smooth = true;
+					objSerie.name = currentLegends[i];	
+					objSerie.data = newData5[i];
+					currentSeries.push(objSerie);
+				}
+				currentSeries[3].yAxisIndex = 1;
+				setLoadRateChart(currentLegends, cName, currentSeries);
+
+				var vName = "电压" + "(" + data.voltageUom.symbol + ")" ;
+				var vLegends = data.voltageLegends;
+				var volSeries = [];
+				if(data.voltages != null && data.voltages.length > 0) {
+					for(var i = 0; i < data.voltages.length; i++) {
+						var volSerie = {};
+						volSerie.type = 'line';
+						volSerie.smooth = true;
+						volSerie.name = vLegends[i];
+						var volSerieData = [];
+						var voltage = data.voltages[i];
+						for(var j = 0; j < voltage.length; j++) {
+							var v = [];
+							v.push(voltage[j].timestamp);
+							v.push(voltage[j].value);
+							volSerieData.push(v);
+						}
+						volSerie.data = volSerieData;
+						volSeries.push(volSerie);                          //[[1551238200000, 35], [1551238500000, 24]]
+					}
+				}
+				setVoltageChart(vLegends, vName, volSeries)
+			},
+			error: function() {
+			}
+		});
+	}
+
+
+    
+    checkData("2019-02-27", value[0], value[1]);

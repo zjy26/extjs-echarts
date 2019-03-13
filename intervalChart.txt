@@ -1,0 +1,105 @@
+var option1;
+var myChart1;
+
+var newChart = Ext.create('Ext.Container', {
+	html:'<div id="newChart" style="width: 600px;height:280px"></div>',
+	setChart: function(){
+		myChart1 = echarts.init(document.getElementById("newChart"), 'light');
+        option1 = {
+            title: {
+                text: '动态数据'
+            },
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: {
+                    type: 'cross',
+                    label: {
+                        backgroundColor: '#283b56'
+                    }
+                }
+            },
+            legend: {
+                data:['数量']
+            },
+            xAxis: [
+                {
+                    type: 'category',
+                    boundaryGap: true,
+                    data: (function (){
+                        var now = new Date();
+                        var res = [];
+                        var len = 5;
+                        while (len--) {
+                            res.unshift(now.toLocaleTimeString('chinese', { hour12: false }).replace(/^\D*/,''));
+                            now = new Date(now - 2000);
+                        }
+                        return res;
+                    })()
+                }
+            ],
+            yAxis: [
+                {
+                    type: 'value',
+                    scale: true,
+                    name: '数量'
+                }
+            ],
+            series: [
+                {
+                    name:'数量',
+                    type:'line',
+                    data: [100,200,300,400,200]
+                }
+            ]
+        };
+
+		myChart1.setOption(option1, true);
+	}
+});
+
+Ext.create('Ext.panel.Panel', {
+	layout: 'fit',
+	border: 0,
+	items:[newChart],
+	echartInit:function(){
+		var refreshOnTime = function() {
+			Ext.Ajax.request({
+				url: '',
+				method:'GET',
+				params:{
+				},
+				callback:function(options, success, response){
+	
+					axisData = (new Date()).toLocaleTimeString('chinese', { hour12: false }).replace(/^\D*/,'');
+				
+					var data0 = option1.series[0].data;
+					
+					data0.push(Math.round(Math.random() * 1000));
+					option1.series[0].data = data0.slice(-5);
+
+					console.log(data0)
+
+					var dataX = option1.xAxis[0].data;
+					dataX.push(axisData);
+					option1.xAxis[0].data = dataX.slice(-5);
+				
+					myChart1.setOption(option1);
+
+				}
+			});
+		}
+		setInterval(refreshOnTime, 2000);
+		refreshOnTime();
+
+		newChart.setChart();
+	},
+	refreshPortlet: function() {
+	},
+	listeners: {
+		afterRender: function(){
+			this.echartInit();
+		}
+	}
+});
+
+
